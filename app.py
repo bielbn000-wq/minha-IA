@@ -3,14 +3,23 @@ from groq import Groq
 
 MODELO = "openai/gpt-oss-20b"
 
+PROMPT_PADRAO = """
+Você é o JoyToy AI, uma inteligência artificial amigável.
+
+Responda em português quando o usuário falar português.
+Seja natural, inteligente e direto.
+Explique assuntos difíceis de forma simples.
+Não invente informações; admita quando não souber.
+"""
+
 st.set_page_config(
-    page_title="Minha IA",
+    page_title="JoyToy AI",
     page_icon="🤖",
     layout="centered",
 )
 
-st.title("🤖 Minha IA")
-st.caption("Converse diretamente com a inteligência artificial.")
+st.title("JoyToy AI")
+st.caption("Converse diretamente com o JoyToy a SUA AI (inteligência artificial).")
 
 # O histórico existe apenas na sessão atual do Streamlit. Não é gravado em arquivo.
 if "mensagens" not in st.session_state:
@@ -40,11 +49,14 @@ if pergunta and pergunta.strip():
     with st.chat_message("assistant"):
         area_resposta = st.empty()
         try:
-            resposta = cliente.chat.completions.create(
-                model=MODELO,
-                messages=st.session_state.mensagens,
-                max_completion_tokens=2048,
-            )
+        resposta = cliente.chat.completions.create(
+            model=MODELO,
+            messages=[
+                {"role": "system", "content": PROMPT_PADRAO},
+                *st.session_state.mensagens,
+            ],
+            max_completion_tokens=2048,
+        )    
             texto_resposta = resposta.choices[0].message.content or "Não recebi uma resposta da IA."
             area_resposta.markdown(texto_resposta)
             st.session_state.mensagens.append(
