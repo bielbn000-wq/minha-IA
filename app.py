@@ -31,7 +31,11 @@ modo = st.radio("Modo de conversa", ["Normal", "ADM"], horizontal=True)
 # O componente recebe o trabalho pendente e devolve um dicionário quando terminar.
 if modo == "ADM":
     job = st.session_state.adm_job
-    resultado = puter_bridge(job=job, key="joytoy_puter_bridge")
+    resultado = adm_component(
+    data={"job": job},
+    key="joytoy_adm_bridge_instance",
+    on_response_change=lambda: None,
+)
 
     if (
         job is not None
