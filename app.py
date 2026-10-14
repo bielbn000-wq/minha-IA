@@ -6,6 +6,13 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 from groq import Groq
+from pathlib import Path
+
+puter_bridge = components.declare_component(
+    "joytoy_puter_bridge",
+    path=str(Path(__file__).parent / "joytoy_puter_component")
+)
+
 
 if "mensagens" not in st.session_state:
     st.session_state.mensagens = []
