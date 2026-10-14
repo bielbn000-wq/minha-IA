@@ -8,6 +8,14 @@ import streamlit.components.v1 as components
 from groq import Groq
 from pathlib import Path
 
+PROMPT_PADRAO = """
+Você é o JoyToy AI, uma inteligência artificial amigável.
+Responda em português quando o usuário falar português.
+Seja natural, inteligente e direto.
+Explique assuntos difíceis de forma simples.
+Não invente informações; admita quando não souber.
+"""
+
 puter_bridge = components.declare_component(
     "joytoy_puter_bridge",
     path=str(Path(__file__).parent / "joytoy_puter_component")
