@@ -80,10 +80,19 @@ if modo == "ADM":
               localStorage.setItem(KEY, JSON.stringify(job));
 
               try {
-                const result = await puter.ai.chat(job.prompt, {
-                  model: job.model
-                });
-
+  const result = await Promise.race([
+    puter.ai.chat(job.prompt, {
+      model: job.model
+    }),
+    new Promise((_, reject) =>
+      setTimeout(
+        () => reject(new Error(
+          "Tempo esgotado após 60 segundos. Tente novamente."
+        )),
+        60000
+      )
+    )
+  ]);
                 let answer = "";
                 if (typeof result === "string") {
                   answer = result;
