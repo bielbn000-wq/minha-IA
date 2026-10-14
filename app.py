@@ -16,6 +16,9 @@ Explique assuntos difíceis de forma simples.
 Não invente informações; admita quando não souber.
 """
 
+MODELO_NORMAL = "openai/gpt-oss-20b"
+MODELO_ADM = "cognitivecomputations/dolphin-mistral-24b-venice-edition"
+
 puter_bridge = components.declare_component(
     "joytoy_puter_bridge",
     path=str(Path(__file__).parent / "joytoy_puter_component")
