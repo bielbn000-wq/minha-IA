@@ -1,3 +1,11 @@
+import json
+import time
+import uuid
+from pathlib import Path
+
+import streamlit as st
+import streamlit.components.v1 as components
+from groq import Groq
 
 if "mensagens" not in st.session_state:
     st.session_state.mensagens = []
