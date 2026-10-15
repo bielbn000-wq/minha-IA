@@ -156,4 +156,3 @@ if pergunta:
 
         except Exception as erro:
             st.error(f"Erro no modo {modo}: {erro}")
-```
