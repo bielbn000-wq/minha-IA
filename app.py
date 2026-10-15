@@ -7,7 +7,7 @@ from openai import OpenAI
 # =========================
 
 MODELO_NORMAL = "openai/gpt-oss-20b"
-MODELO_ADM = "dolphin3"
+MODELO_ADM = "dolphin-mistral"
 
 PROMPT_PADRAO = """
 Você é o JoyToy AI, uma inteligência artificial amigável.
