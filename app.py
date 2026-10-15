@@ -1,4 +1,3 @@
-```python
 import uuid
 import streamlit as st
 from groq import Groq
@@ -345,4 +344,3 @@ if pergunta:
             })
 
             st.error(mensagem_erro)
-```
