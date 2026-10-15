@@ -1,132 +1,160 @@
-import json
-import time
-import uuid
-from pathlib import Path
-
+```python
 import streamlit as st
-import streamlit.components.v1 as components
 from groq import Groq
-from pathlib import Path
+from openai import OpenAI
+
+# =========================
+# JOYTOY AI - CONFIGURAÇÃO
+# =========================
+
+MODELO_NORMAL = "openai/gpt-oss-20b"
+MODELO_ADM = "dolphin3"
 
 PROMPT_PADRAO = """
 Você é o JoyToy AI, uma inteligência artificial amigável.
+
 Responda em português quando o usuário falar português.
-Seja natural, inteligente e direto.
+Seja inteligente, natural, útil e direto.
 Explique assuntos difíceis de forma simples.
-Não invente informações; admita quando não souber.
+Use o histórico da conversa para manter o contexto.
 """
 
-MODELO_NORMAL = "openai/gpt-oss-20b"
-MODELO_ADM = "cognitivecomputations/dolphin-mistral-24b-venice-edition"
+st.set_page_config(
+    page_title="JoyToy AI",
+    page_icon="🤖",
+    layout="centered",
+)
 
+st.title("🤖 JoyToy AI")
+st.caption("Sua inteligência artificial")
 
+# =========================
+# ESTADO DA CONVERSA
+# =========================
 
 if "mensagens" not in st.session_state:
     st.session_state.mensagens = []
-if "adm_job" not in st.session_state:
-    st.session_state.adm_job = None
 
-modo = st.radio("Modo de conversa", ["Normal", "ADM"], horizontal=True)
+# =========================
+# SELEÇÃO DO MODO
+# =========================
 
-# O componente recebe o trabalho pendente e devolve um dicionário quando terminar.
-if modo == "ADM":
-    job = st.session_state.adm_job
-    resultado = adm_component(
-    data={"job": job},
-    key="joytoy_adm_bridge_instance",
-    on_response_change=lambda: None,
+modo = st.radio(
+    "Modo de conversa",
+    ["Normal", "ADM"],
+    horizontal=True,
 )
 
-    if (
-        job is not None
-        and isinstance(resultado, dict)
-        and resultado.get("id") == job.get("id")
-    ):
-        erro = resultado.get("error")
-        texto = (resultado.get("answer") or "").strip()
+if modo == "Normal":
+    st.caption(f"Modelo: {MODELO_NORMAL} | Provedor: Groq")
+else:
+    st.caption(f"Modelo: {MODELO_ADM} | Provedor: Ollama Cloud")
 
-        if erro:
-            st.session_state.mensagens.append({
-                "role": "assistant",
-                "content": f"Não consegui obter uma resposta do ADM: {erro}",
-            })
-        elif texto:
-            st.session_state.mensagens.append({
-                "role": "assistant",
-                "content": texto,
-            })
-        else:
-            st.session_state.mensagens.append({
-                "role": "assistant",
-                "content": "O modelo retornou uma resposta vazia. Tente novamente.",
-            })
+# =========================
+# LIMPAR CONVERSA
+# =========================
 
-        st.session_state.adm_job = None
-        st.rerun()
+if st.button("🗑️ Limpar conversa"):
+    st.session_state.mensagens = []
+    st.rerun()
 
-# Histórico compartilhado e renderizado com a interface nativa do Streamlit.
+# =========================
+# EXIBIR HISTÓRICO
+# =========================
+
 for mensagem in st.session_state.mensagens:
     with st.chat_message(mensagem["role"]):
         st.markdown(mensagem["content"])
 
-aguardando_adm = modo == "ADM" and st.session_state.adm_job is not None
-pergunta = st.chat_input(
-    "Aguarde a resposta do ADM..." if aguardando_adm else "Digite sua mensagem...",
-    disabled=aguardando_adm,
-)
+# =========================
+# ENVIAR MENSAGEM
+# =========================
 
-if pergunta and pergunta.strip():
-    texto_usuario = pergunta.strip()
+pergunta = st.chat_input("Converse com o JoyToy...")
+
+if pergunta:
     st.session_state.mensagens.append({
         "role": "user",
-        "content": texto_usuario,
+        "content": pergunta,
     })
 
-    if modo == "ADM":
-        # Monta o contexto com o histórico, incluindo a mensagem recém-enviada.
-        partes = ["INSTRUÇÕES DO SISTEMA:\n" + PROMPT_PADRAO]
-        for item in st.session_state.mensagens:
-            rotulo = "Usuário" if item["role"] == "user" else "JoyToy"
-            partes.append(f"{rotulo}: {item['content']}")
-        partes.append("JoyToy:")
+    with st.chat_message("user"):
+        st.markdown(pergunta)
 
-        st.session_state.adm_job = {
-            "id": uuid.uuid4().hex,
-            "prompt": "\n\n".join(partes),
-            "model": MODELO_ADM,
-        }
-        st.rerun()
+    mensagens_api = [
+        {
+            "role": "system",
+            "content": PROMPT_PADRAO,
+        },
+        *st.session_state.mensagens,
+    ]
 
-    else:
+    with st.chat_message("assistant"):
         try:
-            chave_api = st.secrets["GROQ_API_KEY"]
-            cliente = Groq(api_key=chave_api)
-        except Exception:
-            st.error("Configure GROQ_API_KEY em Streamlit → Settings → Secrets.")
-            st.stop()
+            with st.spinner("JoyToy está pensando..."):
 
-        with st.chat_message("assistant"):
-            try:
-                resposta = cliente.chat.completions.create(
-                    model=MODELO_NORMAL,
-                    messages=[
-                        {"role": "system", "content": PROMPT_PADRAO},
-                        *st.session_state.mensagens,
-                    ],
-                    max_completion_tokens=2048,
-                )
-                texto = resposta.choices[0].message.content or "Não recebi uma resposta da IA."
+                # MODO NORMAL: GROQ
+                if modo == "Normal":
+                    api_key = st.secrets.get(
+                        "GROQ_API_KEY", ""
+                    )
+
+                    if not api_key:
+                        raise ValueError(
+                            "Configure GROQ_API_KEY nos "
+                            "Secrets do Streamlit."
+                        )
+
+                    cliente = Groq(
+                        api_key=api_key,
+                        timeout=30.0,
+                    )
+
+                    resposta = cliente.chat.completions.create(
+                        model=MODELO_NORMAL,
+                        messages=mensagens_api,
+                        temperature=0.7,
+                        max_completion_tokens=2048,
+                    )
+
+                # MODO ADM: OLLAMA CLOUD
+                else:
+                    api_key = st.secrets.get(
+                        "OLLAMA_API_KEY", ""
+                    )
+
+                    if not api_key:
+                        raise ValueError(
+                            "Configure OLLAMA_API_KEY nos "
+                            "Secrets do Streamlit."
+                        )
+
+                    cliente = OpenAI(
+                        base_url="https://ollama.com/v1",
+                        api_key=api_key,
+                        timeout=15.0,
+                    )
+
+                    resposta = cliente.chat.completions.create(
+                        model=MODELO_ADM,
+                        messages=mensagens_api,
+                        temperature=0.7,
+                    )
+
+                texto = (
+                    resposta.choices[0].message.content or ""
+                ).strip()
+
+                if not texto:
+                    texto = "O modelo retornou uma resposta vazia."
+
                 st.markdown(texto)
+
                 st.session_state.mensagens.append({
                     "role": "assistant",
                     "content": texto,
                 })
-            except Exception as erro:
-                st.error("Não foi possível obter uma resposta da Groq.")
-                st.code(f"{type(erro).__name__}: {str(erro)[:500]}")
 
-if st.session_state.mensagens or st.session_state.adm_job:
-    if st.button("Limpar conversa", use_container_width=True):
-        st.session_state.mensagens = []
-        st.session_state.adm_job = None
-        st.rerun()
+        except Exception as erro:
+            st.error(f"Erro no modo {modo}: {erro}")
+```
